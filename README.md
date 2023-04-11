@@ -34,7 +34,7 @@ It doesn't automatically mark up the area of text.
 
       - Windows(not tested on windows)
 
-        config.sys or control panel
+        advanced system setting -> Advanced -> Environment Variables -> User Variables / New
         
         SET OPENAI_API_KEY='sk-...'
 
