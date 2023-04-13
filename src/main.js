@@ -109,7 +109,7 @@ ipcMain.handle(
 
     const tesseractWorker = await createWorker({
       logger: m => {
-        console.log(m);
+        //console.log(m);
         event.sender.send('tesseract-progress', { finished: false, progress: (m.progress*100) });
       }, // Add logger here
     });
@@ -119,10 +119,19 @@ ipcMain.handle(
       {
         await tesseractWorker.loadLanguage(opts.language);
         await tesseractWorker.initialize(opts.language);
-        const { data: { text } } = await tesseractWorker.recognize(opts.image);
-        console.log(text);
-        event.sender.send('tesseract-progress', { finished: true, progress: 100, text: text });
-        //gOverlayWindow.webContents.send('tesseract-result', { text: text });
+        const detectedData = opts.detect ? await tesseractWorker.detect(opts.image) : null;
+        if(opts.detect === false || detectedData.data.script !== null)
+        {
+          const { data: { text } } = await tesseractWorker.recognize(opts.image);
+          console.log(text);
+          event.sender.send('tesseract-progress', { finished: true, progress: 100, text: text });
+          //gOverlayWindow.webContents.send('tesseract-result', { text: text });
+        }
+        else
+        {
+          console.log(detectedData);
+          event.sender.send('tesseract-progress', { finished: true, progress: 100, text: "" });
+        }
         await tesseractWorker.terminate();
       }
       catch(err)

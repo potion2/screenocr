@@ -22,7 +22,7 @@ ipcRenderer.on('tesseract-progress', function (evt, message)
 {
   document.getElementById('btnTesseract').disabled = !message.finished;
   document.getElementById('idProgress').value = message.progress;
-  if(message.text)
+  if(message.text !== undefined && message.text !== null)
   {
     document.getElementById('idTesseractedText').value = message.text;
   }
@@ -34,7 +34,7 @@ ipcRenderer.on('translate-progress', function (evt, message)
 {
   document.getElementById('idTranslateProgress').value = message.progress;
   document.getElementById('btnTranslate').disabled = !message.finished;
-  if(message.text)
+  if(message.text !== undefined && message.text !== null)
   {
     document.getElementById('idTranslatedText').value = message.text;
   }
@@ -155,7 +155,7 @@ function contrastImage(srcURL, callBack)
     canvas.width = image.width;
     canvas.height = image.height;
 
-    ctx.filter = 'contrast(' + contrast_value*contrast_value*contrast_value*contrast_value + ')';
+    ctx.filter = 'contrast(' + contrast_value*contrast_value + ')';
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
     callBack(canvas.toDataURL("image/png"));
   }
@@ -231,13 +231,16 @@ function tesseractImage()
   var lang = document.getElementById("selectLanguage");
   var langtext = lang.options[lang.selectedIndex].value;
 
+  var cbdetect = document.getElementById("idTesseractDetect").checked;
+
   if(imageurl === gTesseractImage && langtext === gTesseractLanguage) return;
 
   gTesseractImage = imageurl;
   gTesseractLanguage = langtext;
   Tesseract.recognize({
+    detect : cbdetect,
     image: imageurl,
-    language: langtext
+    language: langtext,
   });
 }
 

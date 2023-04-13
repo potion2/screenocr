@@ -12,7 +12,7 @@
     <select id="selectScreen" style="width:100%;max-width:90%;" onchange="changeCaptureTarget()"></select>
     <button onclick="refreshScreenSources()">🔄</button></p>
     <p><div class="slidecontainer">
-      Scale<input id="sliderCaptureScale" type="range" min="25" max="200" step="25" value="100">
+      Resolution<input id="sliderCaptureScale" type="range" min="25" max="200" step="25" value="100">
       Contrast<input id="sliderContrast" type="range" min="50" max="200" step="25" value="200">
     </div></p>
     <p>
@@ -35,7 +35,8 @@
       <option value="jpn_vert">Japanese Vertical</option>
     </select>
     <progress id="idProgress" max="100" value="0"></progress></p>
-    <p><input type="checkbox" id="idTesseractAuto" onchange="onAutoChanged()" />Auto</p>
+    <p><input type="checkbox" id="idTesseractAuto" onchange="onAutoChanged()" />Auto
+       <input type="checkbox" id="idTesseractDetect" />Detect</p>
     <p><textarea id="idTesseractedText" cols="73" rows="10"></textarea></p>
 
     <hr>
