@@ -24,7 +24,7 @@ It doesn't automatically mark up the area of text.
 
 #### OCR traineddata
 
-  - Download it in [here](https://github.com/tesseract-ocr/tessdata_best) and move it to project root.
+  - Download it in [here](https://github.com/tesseract-ocr/tessdata_fast) and move it to project root.
 
 
 #### OpenAI API key
