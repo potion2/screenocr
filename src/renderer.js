@@ -20,7 +20,6 @@ const OverlayWindow = {
 var gTesseractFinished = true;
 ipcRenderer.on('tesseract-progress', function (evt, message)
 {
-  //console.log(message);
   document.getElementById('btnTesseract').disabled = !message.finished;
   document.getElementById('idProgress').value = message.progress;
   if(message.text)
@@ -33,7 +32,6 @@ ipcRenderer.on('tesseract-progress', function (evt, message)
 var gTranslateFinished = true;
 ipcRenderer.on('translate-progress', function (evt, message)
 {
-  //console.log(message);
   document.getElementById('idTranslateProgress').value = message.progress;
   document.getElementById('btnTranslate').disabled = !message.finished;
   if(message.text)

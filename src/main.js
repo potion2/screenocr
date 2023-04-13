@@ -122,7 +122,7 @@ ipcMain.handle(
         const { data: { text } } = await tesseractWorker.recognize(opts.image);
         console.log(text);
         event.sender.send('tesseract-progress', { finished: true, progress: 100, text: text });
-        gOverlayWindow.webContents.send('tesseract-result', { text: text });
+        //gOverlayWindow.webContents.send('tesseract-result', { text: text });
         await tesseractWorker.terminate();
       }
       catch(err)
