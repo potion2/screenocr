@@ -14,6 +14,8 @@ const createWindow = () => {
     width: 800,
     height: 600,
     webPreferences: {
+      maximizable: false,
+      fullscreenable: false,
       preload: path.join(__dirname, 'preload.js'),
       langPath: path.join(__dirname, '..', 'lang-data'),
       nodeIntegration: true,
@@ -23,9 +25,13 @@ const createWindow = () => {
   gOverlayWindow = new BrowserWindow({
     width: 400,
     height:300,
-    parent: gMainWindow,
+    //parent: gMainWindow,
     titleBarStyle: 'hidden',
     titleBarOverlay: true,
+    minimizable: false,
+    maximizable: false,
+    focusable: false,
+    fullscreenable: false,
     transparent: true,
     backgroundColor: '#55F5F5DC',
     webPreferences: {
@@ -42,6 +48,7 @@ const createWindow = () => {
   var [mainWindowPosX,mainWindowPosY] = gMainWindow.getPosition();
   var [mainWindowSizeW, mainWindowSizeH] = gMainWindow.getSize();
   gOverlayWindow.setPosition(mainWindowPosX + mainWindowSizeW, mainWindowPosY);
+  gMainWindow.focus();
 
   // Open the DevTools.
   //gMainWindow.webContents.openDevTools();
@@ -86,7 +93,11 @@ ipcMain.handle(
   {
     const primaryDisplay = screen.getPrimaryDisplay();
     const { width, height } = primaryDisplay.bounds;
-    return { width: width, height:height };
+    return {
+      width: width,
+      height: height,
+      pixel_width: width*primaryDisplay.scaleFactor,
+      pixel_height: height*primaryDisplay.scaleFactor };
   }
 );
 
@@ -181,5 +192,12 @@ ipcMain.handle(
     {
       gOverlayWindow.hide();
     }
+  }
+);
+
+ipcMain.handle(
+  'MESSAGEBOX_AUTOMATIC_TESSERACT',
+  async (event, opts) =>
+  {
   }
 );

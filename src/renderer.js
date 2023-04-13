@@ -17,7 +17,7 @@ const OverlayWindow = {
   Show: (opts) => ipcRenderer.invoke('OVERLAYWINDOW_SHOW', opts)
 }
 
-
+var gTesseractFinished = true;
 ipcRenderer.on('tesseract-progress', function (evt, message)
 {
   //console.log(message);
@@ -27,8 +27,10 @@ ipcRenderer.on('tesseract-progress', function (evt, message)
   {
     document.getElementById('idTesseractedText').value = message.text;
   }
+  gTesseractFinished = message.finished;
 });
 
+var gTranslateFinished = true;
 ipcRenderer.on('translate-progress', function (evt, message)
 {
   //console.log(message);
@@ -38,6 +40,7 @@ ipcRenderer.on('translate-progress', function (evt, message)
   {
     document.getElementById('idTranslatedText').value = message.text;
   }
+  gTranslateFinished = message.finished;
 });
 
 
@@ -114,7 +117,7 @@ function changeCaptureTarget()
 
 
 // set up canvas element
-const canvasToCrop = document.createElement("canvas");
+const gCanvasToCrop = document.createElement("canvas");
 
 //crop the image and draw it to the canvas
 async function cropImage(imageURL, newX, newY, newWidth, newHeight)
@@ -124,7 +127,7 @@ async function cropImage(imageURL, newX, newY, newWidth, newHeight)
   originalImage.src = imageURL;
 
   //initialize the canvas object
-  const canvas = canvasToCrop;
+  const canvas = gCanvasToCrop;
   const ctx = canvas.getContext("2d");
 
   //wait for the image to finish loading
@@ -139,8 +142,32 @@ async function cropImage(imageURL, newX, newY, newWidth, newHeight)
   return canvas.toDataURL();
 }
 
+function contrastImage(srcURL, callBack)
+{
+  var sliderCaptureScale = document.getElementById("sliderContrast");
+  var contrast_value = sliderCaptureScale.value/100.0;
+
+  const image = new Image();
+  image.src = srcURL;
+
+  const canvas = gCanvasToCrop;
+  const ctx = canvas.getContext('2d');
+  image.onload = () =>
+  {
+    canvas.width = image.width;
+    canvas.height = image.height;
+
+    ctx.filter = 'contrast(' + contrast_value*contrast_value*contrast_value*contrast_value + ')';
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    callBack(canvas.toDataURL("image/png"));
+  }
+}
+
+var gCaptureFinished = true;
 function captureScreenSources()
 {
+  if(gMouseDown === true || gCaptureFinished === false) return;
+  gCaptureFinished = false;
   screen.getSize().then((screen_size) =>
   {
     var screenSelector = document.getElementById("selectScreen");
@@ -148,10 +175,15 @@ function captureScreenSources()
 
     var screen_name = screenSelector.value;
 
+    var sliderCaptureScale = document.getElementById("sliderCaptureScale");
+    var scale = sliderCaptureScale.value;
+
     var opts =
     {
       types: ['window', 'screen'],
-      thumbnailSize: { width: screen_size.width, height: screen_size.height }
+      thumbnailSize: {
+        width: parseInt(screen_size.width*scale/100.0),
+        height: parseInt(screen_size.height*scale/100.0) }
     };
 
     desktopCapturer.getSources(opts).then(async sources =>
@@ -160,9 +192,6 @@ function captureScreenSources()
       {
         if (source.name === screen_name)
         {
-          const imgCapture = document.images[0];
-          //console.log(source.thumbnail.toDataURL());
-
           var img = document.getElementById("imgCaptured");
           var videoDiv = document.getElementById("videoCaptured");
           var vr = videoDiv.getBoundingClientRect();
@@ -177,7 +206,11 @@ function captureScreenSources()
           var ch = tsize.height*sr.height/vr.height;
           //timg.crop({ x: cx, y: cy, width: cw, height: ch });
           var imgCropped = await cropImage(timg.toDataURL(), cx, cy, cw, ch);
-          img.setAttribute("src", imgCropped);
+          contrastImage(imgCropped, (ci) =>
+          {
+            img.setAttribute("src", ci);
+            gCaptureFinished = true;
+          });
 
           return;
         }
@@ -186,9 +219,13 @@ function captureScreenSources()
   });
 }
 
+var gTesseractImage;
+var gTesseractLanguage;
 function tesseractImage()
 {
-  const imgCapture = document.images[0];
+  if(gTesseractFinished === false) return;
+
+  //const imgCapture = document.images[0];
   //console.log(source.thumbnail.toDataURL());
 
   var imageurl = document.getElementById("imgCaptured").src;
@@ -196,12 +233,20 @@ function tesseractImage()
   var lang = document.getElementById("selectLanguage");
   var langtext = lang.options[lang.selectedIndex].value;
 
+  if(imageurl === gTesseractImage && langtext === gTesseractLanguage) return;
+
+  gTesseractImage = imageurl;
+  gTesseractLanguage = langtext;
   Tesseract.recognize({
     image: imageurl,
     language: langtext
   });
 }
 
+
+var gTranslatedText = "";
+var gTranslatedLangSrc = "";
+var gTranslatedLangDst = "";
 
 /*function translateText()
 {
@@ -211,6 +256,13 @@ function tesseractImage()
   const langdst = lang.options[lang.selectedIndex].value;
 
   const query = document.getElementById('idTesseractedText').value;
+
+  if(gTranslatedText.localeCompare(query) === 0 &&
+     gTranslatedLangSrc.localeCompare(langsrc) === 0 &&
+     gTranslatedLangDst.localeCompare(langdst) === 0)
+  {
+    return;
+  }
 
   // naver PAPAGO
   var client_id = 'PAPAGO_CLIENTID';
@@ -239,12 +291,22 @@ function tesseractImage()
 
 function translateText()
 {
+  if(gTranslateFinished === false) return;
+
   var lang = document.getElementById("selectTranslateFrom");
   const langsrc = lang.options[lang.selectedIndex].value;
   lang = document.getElementById("selectTranslateTo");
   const langdst = lang.options[lang.selectedIndex].value;
 
   const query = document.getElementById('idTesseractedText').value;
+
+  if(query.length === 0 || langdst.length ===  0) return;
+  if(gTranslatedText.localeCompare(query) === 0 &&
+     gTranslatedLangSrc.localeCompare(langsrc) === 0 &&
+     gTranslatedLangDst.localeCompare(langdst) === 0)
+  {
+    return;
+  }
 
   Translate.translate_openai({
     langsrc: langsrc,
@@ -335,15 +397,83 @@ function onMouseUp(e)
   gMouseDown = false;
 }
 
+
+var gAutoTimeoutID;
+
+function onAutoChanged()
+{
+  var btnCapture = document.getElementById("btnCapture");
+  var btnTesseract = document.getElementById("btnTesseract");
+  var btnTranslate = document.getElementById("btnTranslate");
+
+  var cbTesseractAuto = document.getElementById("idTesseractAuto");
+  var cbTranslateAuto = document.getElementById("idTranslateAuto");
+
+  if(cbTesseractAuto.checked === false && cbTranslateAuto.checked === false)
+  {
+    clearTimeout(gAutoTimeoutID);
+    btnCapture.disabled = false;
+    btnTesseract.disabled = false;
+    btnTranslate.disabled = false;
+    return;
+  }
+
+  if(cbTesseractAuto.checked === true)
+  {
+    btnCapture.disabled = true;
+    btnTesseract.disabled = true;
+  }
+  if(cbTranslateAuto.checked === true)
+  {
+    btnTranslate.disabled = true;
+  }
+
+  setTimeout(() => doAutoTranslateRecursive(), 500);
+}
+
+function doAutoTranslateRecursive()
+{
+  var btnCapture = document.getElementById("btnCapture");
+  var btnTesseract = document.getElementById("btnTesseract");
+  var btnTranslate = document.getElementById("btnTranslate");
+
+  var cbTesseractAuto = document.getElementById("idTesseractAuto");
+  var cbTranslateAuto = document.getElementById("idTranslateAuto");
+
+  if(cbTesseractAuto.checked === false && cbTranslateAuto.checked === false)
+  {
+    clearTimeout(gAutoTimeoutID);
+    btnCapture.disabled = false;
+    btnTesseract.disabled = false;
+    btnTranslate.disabled = false;
+    return;
+  }
+
+  if(cbTesseractAuto.checked ===  true)
+  {
+    btnCapture.disabled = true;
+    btnTesseract.disabled = true;
+    captureScreenSources();
+    if(gTesseractFinished === true)
+    {
+      tesseractImage();
+    }
+  }
+
+  if(cbTranslateAuto.checked ===  true)
+  {
+    btnTranslate.disabled = true;
+    if(gTranslateFinished === true)
+    {
+      translateText();
+    }
+  }
+
+  setTimeout(() => doAutoTranslateRecursive(), 1000);
+}
+
 function onShowOverlayChanged()
 {
   var checkBox = document.getElementById("idShowOverlay");
-  if(checkBox.checked)
-  {
-    OverlayWindow.Show({ show: true });
-  }
-  else
-  {
-    OverlayWindow.Show({ show: false });
-  }
+  OverlayWindow.Show({ show: checkBox.checked });
 }

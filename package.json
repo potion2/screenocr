@@ -1,7 +1,7 @@
 {
   "name": "screenocr01",
   "productName": "Screen OCR",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Screen Capture + OCR + Translation",
   "main": "src/main.js",
   "scripts": {
